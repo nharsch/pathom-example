@@ -4,6 +4,7 @@
     [com.wsscode.pathom3.connect.indexes :as pci]
     [com.wsscode.pathom3.connect.operation :as pco]
     [com.wsscode.pathom3.interface.eql :as p.eql]
+    [com.wsscode.pathom3.interface.smart-map :as psm]
     [org.httpkit.client :as http]))
 
 (pco/defresolver ip->lat-long
@@ -27,9 +28,24 @@
        :temp2m
        )})
 
+(pco/defresolver latlong->address
+  [{:keys [latitude longitude]}]
+  {::pco/output [:city :country :postcode :state :postcode]}
+  (-> @(http/request {:url (str "https://nominatim.openstreetmap.org/reverse?format=json&lat=" latitude "&lon=" longitude)})
+      :body
+      (json/parse-string keyword)
+      :address))
+
+;; (pco/defresolver address->keys
+;;   [{:keys [address]}]
+;;   {:city (:city address)
+;;    :country (:country address)})
+
 (def env
   (pci/register [ip->lat-long
-                 latlong->temperature]))
+                 latlong->temperature
+                 latlong->address
+                 ]))
 
 (defn main [{:keys [ip]}]
   (println "Request temperature for the IP" ip))
@@ -38,6 +54,15 @@
   (-> {:ip "192.29.213.3"}
       ip->lat-long
       latlong->temperature)
-  (p.eql/process env {:ip "192.29.213.3"} [:latitude :longitude :temperature])
+  (->  @(http/request {:url (str "https://nominatim.openstreetmap.org/reverse?format=json&lat=" 34 "&lon=" -118)})
+       :body
+       (json/parse-string keyword)
+       :address
+       keys)
+  (p.eql/process env {:ip "192.29.213.3"} [:address])
+  (p.eql/process env {:ip "192.29.213.3"} [:city])
+  (p.eql/process env {:ip "192.29.213.3"} [:country])
+  (p.eql/process env {:ip "192.29.213.3"} [:state])
+  (p.eql/process env {:ip "192.29.213.3"} [:postcode])
   env
   )
