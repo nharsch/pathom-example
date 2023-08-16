@@ -4,8 +4,7 @@
     [com.wsscode.pathom3.connect.indexes :as pci]
     [com.wsscode.pathom3.connect.operation :as pco]
     [com.wsscode.pathom3.interface.eql :as p.eql]
-    [com.wsscode.pathom3.interface.smart-map :as psm]
-    [com.wsscode.edn-json :refer [edn->json json->edn]]
+    [com.wsscode.edn-json :as ej]
     [org.httpkit.client :as http]))
 
 (pco/defresolver ip->lat-long
@@ -25,7 +24,7 @@
        :body
        (json/parse-string keyword)
        :dataseries
-       first
+       last
        :temp2m
        )})
 
@@ -37,11 +36,6 @@
       (json/parse-string keyword)
       :address))
 
-;; (pco/defresolver address->keys
-;;   [{:keys [address]}]
-;;   {:city (:city address)
-;;    :country (:country address)})
-
 (def env
   (pci/register [ip->lat-long
                  latlong->temperature
@@ -50,13 +44,28 @@
 
 (def pathom (p.eql/boundary-interface env))
 
-(comment
-  ; here's how to pass data into boundary interface
-  ; with eql
-  (pathom {:pathom/entity  {:ip "192.29.213.3"}
-           :pathom/eql [:state]})
-  ; with AST
-  )
+; hacky but it works
+(defn keywordize-colon-keys
+  "Recursively transform string keys that start with ':' into keywords."
+  [item]
+  (cond
+    ; assume keys will be converted elsewhere
+    (map? item) (into {} (map (fn [[k v]] [(keywordize-colon-keys k) (keywordize-colon-keys v)]) item))
+    (vector? item) (mapv keywordize-colon-keys item)
+    (string? item) (if (clojure.string/starts-with? item ":") (keyword (subs item 1)) item)
+    :else item))
+
+(defn decode-payload [json-string]
+  (-> json-string
+      json/parse-string
+      ej/json-like->edn
+      keywordize-colon-keys
+      ))
+
+(defn handle-query [json-string]
+  (pathom (decode-payload json-string)))
+
+
 
 (defn main [{:keys [ip]}]
   (println "Request temperature for the IP" ip))

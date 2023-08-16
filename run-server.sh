@@ -1,0 +1,1 @@
+clj -X server/-main
