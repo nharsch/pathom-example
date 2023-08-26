@@ -15,14 +15,14 @@
   (handle-query body)
   )
 
-(defn handle-get-request [request]
+(defn handle-request [request]
   (let [body (parse-body (slurp (:body request)))]
     (println "query returned" body)
     {:status 200
      :body body}))
 
 (defroutes app-routes
-  (GET "/api" request (handle-get-request request))
+  (POST "/api" request (handle-request request))
   (route/not-found "Not Found"))
 
 (def app

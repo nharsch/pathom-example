@@ -7,21 +7,28 @@ The API accepts EQL queries as JSON. Since there is no standard way of convertin
 IE 
 
 ``` javascript
-{":pathom/entity":{":ip":"192.29.213.3"},":pathom/eql":[":state", ":city", ":temperature"]}
+{
+    ":pathom/entity":{":ip":"192.29.213.3"},
+    ":pathom/eql":[":state", ":city", ":temperature"]
+}
 ```
 
 Will be parsed as
 
 ``` clojure
-{:pathom/entity {:ip "192.29.213.3"}, :pathom/eql [:state :city :temperature]}
-```
-
-Note this isn't the default behavior of converting JSON->EDN
-
-```clojure
-; using cheshire
-(json/parse-string "{\":pathom/entity\":{\":ip\":\"192.29.213.3\"},\":pathom/eql\":[\":state\", \":city\", \":temperature\"]}" keyword)
--> #::pathom{:entity {::ip "192.29.213.3"}, :eql [":state" ":city" ":temperature"]}
+{
+    :pathom/entity {:ip "192.29.213.3"}, 
+    :pathom/eql [:state :city :temperature]
+}
 ```
 
 User `./run-server.sh` to run a dev server
+
+To test, run 
+
+```bash
+curl --location 'localhost:3000/api' \
+--header 'Content-Type: application/json' \
+--data '{":pathom/entity":{":ip":"192.29.213.3"},":pathom/eql":[":state", ":city", ":temperature"]}'
+```
+
